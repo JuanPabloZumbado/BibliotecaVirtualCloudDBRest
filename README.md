@@ -82,6 +82,35 @@ Cuando ocurre un error, la respuesta tiene este formato:
 | `404 Not Found` | El recurso solicitado no existe |
 | `409 Conflict` | La operación viola una restricción de la base de datos (duplicado o referencia inválida) |
 
+### Usuarios
+
+Los usuarios ya existen en la base de datos: no hay registro ni administración de usuarios. El inicio de sesión se hace buscando al usuario por su correo, sin contraseña.
+
+| Método | Endpoint | Descripción | Respuesta exitosa |
+|---|---|---|---|
+| `GET` | `/api/v1/usuarios/{id}` | Obtener un usuario por su ID. | `200 OK`; `404` si no existe |
+| `GET` | `/api/v1/usuarios/by-correo/{correo}` | Buscar un usuario por su correo. Lo usa el login del frontend. | `200 OK`; `404` si no existe |
+| `PATCH` | `/api/v1/usuarios/{id}` | Actualizar el perfil. Solo cambian los campos enviados. | `200 OK`; `400` datos inválidos; `404`; `409` correo ya registrado |
+
+Campos JSON de usuario:
+
+| Campo | Tipo | Notas |
+|---|---|---|
+| `idUsuario` | integer | |
+| `nombre` | string | Editable; no puede quedar vacío |
+| `correo` | string | Editable; único y con formato válido |
+| `fechaRegistro` | string | Formato `YYYY-MM-DD`; no editable |
+
+Actualizar el nombre de un usuario:
+```http
+PATCH /api/v1/usuarios/3
+Content-Type: application/json
+
+{
+  "nombre": "Fabricio Castro"
+}
+```
+
 ### Catálogo de libros
 
 | Método | Endpoint | Descripción | Respuesta exitosa |

@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import teccr.biblioteca.exception.ConflictoException;
 import teccr.biblioteca.exception.RecursoNoEncontradoException;
 
 import java.util.Map;
@@ -30,6 +31,11 @@ public class ManejadorErrores {
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<Map<String, Object>> manejarTipoInvalido(MethodArgumentTypeMismatchException ex) {
         return respuesta(HttpStatus.BAD_REQUEST, "Valor inválido para el parámetro '" + ex.getName() + "'");
+    }
+
+    @ExceptionHandler(ConflictoException.class)
+    public ResponseEntity<Map<String, Object>> manejarConflictoNegocio(ConflictoException ex) {
+        return respuesta(HttpStatus.CONFLICT, ex.getMessage());
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)

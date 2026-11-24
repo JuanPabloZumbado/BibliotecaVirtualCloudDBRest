@@ -62,5 +62,112 @@ En IntelliJ: **Run → Edit Configurations → BibliotecaApplication → Environ
 
 El servidor queda en `http://localhost:8080`.
 
-## Endpoints
-*La documentación de los endpoints se agregará conforme se implementen los módulos.*
+## API REST
+
+Todos los endpoints usan el prefijo `/api/v1` y no requieren una sesión iniciada. Los cuerpos de las solicitudes y las respuestas usan JSON.
+
+URL base al ejecutar localmente:
+```text
+http://localhost:8080
+```
+
+### Errores
+Cuando ocurre un error, la respuesta tiene este formato:
+```json
+{ "status": 404, "error": "Not Found", "message": "Libro no encontrado con id: 99" }
+```
+| Código | Cuándo ocurre |
+|---|---|
+| `400 Bad Request` | Datos inválidos o un parámetro con el tipo incorrecto (p. ej. `/sagas/abc`) |
+| `404 Not Found` | El recurso solicitado no existe |
+| `409 Conflict` | La operación viola una restricción de la base de datos (duplicado o referencia inválida) |
+
+### Catálogo de libros
+
+| Método | Endpoint | Descripción | Respuesta exitosa |
+|---|---|---|---|
+| `GET` | `/api/v1/libros` | Catálogo de libros con sus autores y géneros. Acepta filtros opcionales. | `200 OK`, arreglo JSON |
+| `GET` | `/api/v1/libros/{id}` | Detalle de un libro: autores (con su rol), géneros, saga y ediciones. | `200 OK`; `404` si no existe |
+| `GET` | `/api/v1/libros/{id}/ediciones` | Ediciones de un libro. | `200 OK`, arreglo JSON; `404` si el libro no existe |
+| `GET` | `/api/v1/ediciones/{id}` | Una edición por su ID. | `200 OK`; `404` si no existe |
+
+Filtros de `GET /api/v1/libros` (opcionales y combinables):
+
+| Parámetro | Tipo | Descripción |
+|---|---|---|
+| `genero` | integer | ID del género |
+| `autor` | integer | ID del autor |
+| `saga` | integer | ID de la saga |
+| `q` | string | Texto contenido en el título o en el nombre de un autor. No distingue mayúsculas ni acentos. |
+
+Campos JSON de libro:
+
+| Campo | Tipo | Notas |
+|---|---|---|
+| `idLibro` | integer | |
+| `titulo` | string | |
+| `idSaga`, `nombreSaga`, `ordenSaga` | integer / string / integer | Se omiten si el libro no pertenece a una saga |
+| `autores` | arreglo | `idAutor`, `nombre`, `nacionalidad`, `rol` |
+| `generos` | arreglo | `idGenero`, `clasificacion` |
+| `ediciones` | arreglo | Solo en el detalle. Ver campos de edición |
+
+Campos JSON de edición: `idEdicion`, `idLibro`, `tipo`, `editorial`, `isbn`, `totPaginas`, `annoPublicacion` (formato `YYYY-MM-DD`).
+
+Ejemplo, `GET /api/v1/libros/3`:
+```json
+{
+  "idLibro": 3,
+  "titulo": "El Retorno del Rey",
+  "idSaga": 1,
+  "nombreSaga": "El Señor de los Anillos",
+  "ordenSaga": 3,
+  "autores": [{ "idAutor": 2, "nombre": "J.R.R. Tolkien", "nacionalidad": "Británica", "rol": "Escritor" }],
+  "generos": [{ "idGenero": 6, "clasificacion": "Aventura" }, { "idGenero": 1, "clasificacion": "Fantasía" }],
+  "ediciones": [
+    { "idEdicion": 3, "idLibro": 3, "tipo": "Tapa blanda", "editorial": "Minotauro", "isbn": "978-0-000000-03", "totPaginas": 544, "annoPublicacion": "1955-10-20" },
+    { "idEdicion": 4, "idLibro": 3, "tipo": "Edición digital", "editorial": "Minotauro", "isbn": "978-0-000000-04", "totPaginas": 560, "annoPublicacion": "2012-03-15" }
+  ]
+}
+```
+
+### Autores
+
+| Método | Endpoint | Descripción | Respuesta exitosa |
+|---|---|---|---|
+| `GET` | `/api/v1/autores` | Todos los autores, ordenados por nombre. | `200 OK`, arreglo JSON |
+| `GET` | `/api/v1/autores/{id}` | Un autor por su ID. | `200 OK`; `404` si no existe |
+| `GET` | `/api/v1/autores/{id}/libros` | Libros escritos por el autor. | `200 OK`, arreglo JSON; `404` si el autor no existe |
+
+Campos JSON de autor: `idAutor`, `nombre`, `nacionalidad`.
+
+### Géneros
+
+| Método | Endpoint | Descripción | Respuesta exitosa |
+|---|---|---|---|
+| `GET` | `/api/v1/generos` | Todos los géneros. | `200 OK`, arreglo JSON |
+
+Campos JSON de género: `idGenero`, `clasificacion`.
+
+### Sagas
+
+| Método | Endpoint | Descripción | Respuesta exitosa |
+|---|---|---|---|
+| `GET` | `/api/v1/sagas` | Todas las sagas. | `200 OK`, arreglo JSON |
+| `GET` | `/api/v1/sagas/{id}` | Detalle de la saga: libros en orden de lectura, autores y géneros. | `200 OK`; `404` si no existe |
+
+Campos JSON de saga: `idSaga`, `nombre`, `descripcion`. Solo en el detalle se agregan `libros`, `autores` y `generos`.
+
+### Formatos
+
+| Método | Endpoint | Descripción | Respuesta exitosa |
+|---|---|---|---|
+| `GET` | `/api/v1/formatos` | Formatos de lectura (Físico, Electrónico, Audiolibro). | `200 OK`, arreglo JSON |
+
+Campos JSON de formato: `idFormato`, `tipoFormato`.
+
+### Ejemplos con curl
+```sh
+curl http://localhost:8080/api/v1/libros
+curl "http://localhost:8080/api/v1/libros?genero=1&q=anillo"
+curl http://localhost:8080/api/v1/sagas/1
+```

@@ -111,6 +111,92 @@ Content-Type: application/json
 }
 ```
 
+### Lecturas
+
+Una lectura es un usuario leyendo una **edición** de un libro en un **formato** (físico, electrónico o audiolibro). Todas las rutas validan que la lectura pertenezca al usuario `{idUsuario}`.
+
+| Método | Endpoint | Descripción | Respuesta exitosa |
+|---|---|---|---|
+| `GET` | `/api/v1/usuarios/{idUsuario}/lecturas` | Lecturas del usuario, de la más reciente a la más antigua. Filtro opcional `?estado=`. | `200 OK`, arreglo JSON |
+| `GET` | `/api/v1/usuarios/{idUsuario}/lecturas/{id}` | Detalle de la lectura con sus sesiones. | `200 OK`; `404` |
+| `POST` | `/api/v1/usuarios/{idUsuario}/lecturas` | Iniciar una lectura. | `201 Created`; `400`; `404` usuario; `409` ya existe una lectura activa de esa edición |
+| `PATCH` | `/api/v1/usuarios/{idUsuario}/lecturas/{id}` | Cambiar el estado, el formato o las fechas. | `200 OK`; `400`; `404` |
+| `DELETE` | `/api/v1/usuarios/{idUsuario}/lecturas/{id}` | Eliminar la lectura junto con sus sesiones y valoraciones. | `204 No Content`; `404` |
+
+Estados válidos: `por iniciar`, `en curso`, `terminada`, `abandonada`.
+
+Campos JSON de lectura:
+
+| Campo | Tipo | Notas |
+|---|---|---|
+| `idLectura` | integer | Lo genera la base de datos |
+| `idUsuario` | integer | Se toma de la ruta |
+| `idEdicion` | integer | Obligatorio al crear |
+| `idFormato` | integer | Obligatorio al crear; editable |
+| `fechaInicio` | string | `YYYY-MM-DD`; por defecto, la fecha de hoy |
+| `fechaFin` | string o `null` | Se asigna sola al terminar o abandonar la lectura (si no se envía) y se borra si la lectura se reabre |
+| `estado` | string | Al crear solo se permite `por iniciar` o `en curso` (por defecto `en curso`) |
+| `idLibro`, `titulo`, `tipoEdicion`, `editorial`, `totPaginas`, `tipoFormato` | | Solo lectura (se obtienen con JOIN) |
+| `paginaActual` | integer | Solo lectura: mayor `pagFin` registrado en las sesiones |
+| `paginasLeidas`, `minutosLeidos` | integer | Solo lectura: sumas de las sesiones (vista `vw_sesion_paginas`) |
+| `sesiones` | arreglo | Solo en el detalle |
+
+Iniciar una lectura:
+```http
+POST /api/v1/usuarios/1/lecturas
+Content-Type: application/json
+
+{
+  "idEdicion": 5,
+  "idFormato": 1
+}
+```
+
+Terminar una lectura (la `fechaFin` toma la fecha de hoy):
+```http
+PATCH /api/v1/usuarios/1/lecturas/11
+Content-Type: application/json
+
+{
+  "estado": "terminada"
+}
+```
+
+### Sesiones de lectura
+
+| Método | Endpoint | Descripción | Respuesta exitosa |
+|---|---|---|---|
+| `GET` | `/api/v1/lecturas/{idLectura}/sesiones` | Sesiones de la lectura, en orden de registro. | `200 OK`, arreglo JSON; `404` |
+| `POST` | `/api/v1/lecturas/{idLectura}/sesiones` | Registrar una sesión. | `201 Created`; `400`; `404` |
+| `DELETE` | `/api/v1/lecturas/{idLectura}/sesiones/{id}` | Eliminar una sesión de la lectura. | `204 No Content`; `404` |
+
+Campos JSON de sesión:
+
+| Campo | Tipo | Notas |
+|---|---|---|
+| `idSesion` | integer | Lo genera la base de datos |
+| `pagInicio` | integer | Opcional; por defecto es la última página registrada (0 en la primera sesión) |
+| `pagFin` | integer | Obligatorio; `>= pagInicio` y `<=` total de páginas de la edición |
+| `pagLeidas` | integer | Solo lectura: `pagFin - pagInicio` |
+| `duracion` | integer | Obligatorio; minutos, `> 0` |
+| `capActual` | integer | Obligatorio; capítulo en el que quedó el usuario |
+
+Reglas:
+- No se pueden registrar sesiones en una lectura `terminada` o `abandonada`.
+- Si la lectura estaba `por iniciar`, la primera sesión la pasa a `en curso`.
+
+Registrar una sesión (`pagInicio` se completa automáticamente):
+```http
+POST /api/v1/lecturas/11/sesiones
+Content-Type: application/json
+
+{
+  "pagFin": 150,
+  "duracion": 45,
+  "capActual": 5
+}
+```
+
 ### Catálogo de libros
 
 | Método | Endpoint | Descripción | Respuesta exitosa |

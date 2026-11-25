@@ -3,9 +3,11 @@ package teccr.biblioteca.api;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import teccr.biblioteca.exception.ConflictoException;
 import teccr.biblioteca.exception.RecursoNoEncontradoException;
 
@@ -23,9 +25,20 @@ public class ManejadorErrores {
         return respuesta(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Map<String, Object>> manejarRutaInexistente(NoResourceFoundException ex) {
+        return respuesta(HttpStatus.NOT_FOUND, "La ruta /" + ex.getResourcePath() + " no existe");
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> manejarDatosInvalidos(IllegalArgumentException ex) {
         return respuesta(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, Object>> manejarCuerpoInvalido(HttpMessageNotReadableException ex) {
+        return respuesta(HttpStatus.BAD_REQUEST,
+                "El cuerpo de la solicitud no es un JSON válido o tiene un valor con formato incorrecto");
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)

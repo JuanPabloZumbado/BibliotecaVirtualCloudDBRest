@@ -21,6 +21,7 @@ src/main/resources/
   schema.sql   creación de tablas y vistas
   data.sql     datos de prueba
 docs/          diagrama ER (draw.io) y diagrama lógico (Mermaid)
+postman/       colección de Postman con todos los endpoints
 docker-compose.yml  MySQL 8.4 para desarrollo
 ```
 
@@ -80,7 +81,7 @@ Cuando ocurre un error, la respuesta tiene este formato:
 |---|---|
 | `400 Bad Request` | Datos inválidos o un parámetro con el tipo incorrecto (p. ej. `/sagas/abc`) |
 | `404 Not Found` | El recurso solicitado no existe |
-| `409 Conflict` | La operación viola una restricción de la base de datos (duplicado o referencia inválida) |
+| `409 Conflict` | El dato ya existe (p. ej. un libro repetido en la lista por leer) o la operación viola una restricción de la base de datos |
 
 ### Usuarios
 
@@ -269,6 +270,51 @@ Content-Type: application/json
 }
 ```
 
+### Estadísticas
+
+Resumen de la actividad de lectura del usuario, calculado con consultas de agregación (`COUNT`, `SUM`, `AVG`, `GROUP BY`).
+
+| Método | Endpoint | Descripción | Respuesta exitosa |
+|---|---|---|---|
+| `GET` | `/api/v1/usuarios/{idUsuario}/estadisticas` | Estadísticas del usuario. | `200 OK`; `404` si el usuario no existe |
+
+Campos JSON:
+
+| Campo | Tipo | Notas |
+|---|---|---|
+| `idUsuario`, `nombre` | integer / string | |
+| `totalLecturas` | integer | |
+| `lecturasPorEstado` | objeto | Los 4 estados, con `0` si no hay lecturas en ese estado |
+| `librosTerminados` | integer | Libros distintos con al menos una lectura terminada |
+| `totalSesiones`, `paginasLeidas`, `minutosLeidos` | integer | Sumas de todas las sesiones del usuario |
+| `paginasPorHora` | number o `null` | `null` si no hay minutos registrados |
+| `totalValoraciones` | integer | |
+| `promedioPuntuacion` | number o `null` | Redondeado a 2 decimales; `null` si no ha valorado |
+| `librosPorLeer` | integer | Libros en la lista por leer |
+| `generosMasLeidos`, `autoresMasLeidos` | arreglo | Los 3 primeros: `id`, `nombre`, `cantidad` (lecturas) |
+| `formatosUsados` | arreglo | `id`, `nombre`, `cantidad` (lecturas) |
+
+Ejemplo de respuesta (resumido):
+```json
+{
+  "idUsuario": 1,
+  "nombre": "Juan Pablo Zumbado",
+  "totalLecturas": 3,
+  "lecturasPorEstado": { "por iniciar": 0, "en curso": 1, "terminada": 2, "abandonada": 0 },
+  "librosTerminados": 2,
+  "totalSesiones": 8,
+  "paginasLeidas": 1320,
+  "minutosLeidos": 1000,
+  "paginasPorHora": 79.2,
+  "totalValoraciones": 2,
+  "promedioPuntuacion": 4.5,
+  "librosPorLeer": 3,
+  "generosMasLeidos": [ { "id": 6, "nombre": "Aventura", "cantidad": 3 } ],
+  "autoresMasLeidos": [ { "id": 2, "nombre": "J.R.R. Tolkien", "cantidad": 3 } ],
+  "formatosUsados": [ { "id": 1, "nombre": "Físico", "cantidad": 2 } ]
+}
+```
+
 ### Catálogo de libros
 
 | Método | Endpoint | Descripción | Respuesta exitosa |
@@ -357,4 +403,34 @@ Campos JSON de formato: `idFormato`, `tipoFormato`.
 curl http://localhost:8080/api/v1/libros
 curl "http://localhost:8080/api/v1/libros?genero=1&q=anillo"
 curl http://localhost:8080/api/v1/sagas/1
+curl http://localhost:8080/api/v1/usuarios/1/estadisticas
 ```
+
+## Uso de las tablas
+
+Todas las tablas del modelo se usan desde la API:
+
+| Tabla | Endpoints que la usan |
+|---|---|
+| `Usuario` | Usuarios, estadísticas, valoraciones de un libro (nombre del autor de la reseña) |
+| `Libro` | Catálogo, autores, sagas, lecturas, lista por leer, valoraciones |
+| `Edicion` | Detalle del libro, ediciones, lecturas |
+| `Autor`, `Libro_Autor` | Catálogo (filtro `autor` y búsqueda `q`), autores, estadísticas |
+| `Genero`, `Libro_Genero` | Catálogo (filtro `genero`), géneros, estadísticas |
+| `Saga` | Catálogo (filtro `saga`), sagas |
+| `Saga_Autor`, `Saga_Genero` | Detalle de la saga |
+| `Formato` | Formatos, lecturas, estadísticas |
+| `Lectura` | Lecturas, sesiones, valoraciones, estadísticas |
+| `Sesion_Lectura` | Sesiones, progreso de las lecturas y estadísticas (vista `vw_sesion_paginas`) |
+| `Valoracion` | Valoraciones, estadísticas |
+| `Lista_Por_Leer` | Lista por leer, estadísticas |
+
+## Postman
+
+La colección [postman/BibliotecaVirtualAPICollection.postman_collection.json](postman/BibliotecaVirtualAPICollection.postman_collection.json) tiene los 45 requests, organizados por carpeta, y cada uno verifica el código de respuesta esperado.
+
+1. En Postman: **Import** → seleccione el archivo.
+2. Revise las variables de la colección (pestaña **Variables**): `baseUrl` (por defecto `http://localhost:8080`), `userId`, `libroId`, etc.
+3. Con el backend corriendo, use **Run collection** para ejecutarla completa.
+
+Las carpetas están en orden: se inicia una lectura de prueba, se le registran sesiones, se termina, se valora y al final se elimina. Los ids que se crean se guardan solos en las variables (`lecturaId`, `sesionId`, `valoracionId`), así que la base de datos queda con los mismos datos al terminar.

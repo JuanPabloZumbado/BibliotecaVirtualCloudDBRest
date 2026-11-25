@@ -197,6 +197,78 @@ Content-Type: application/json
 }
 ```
 
+### Valoraciones
+
+Una valoración es la puntuación y la reseña que el usuario deja sobre una **lectura** terminada o abandonada. Las valoraciones de un libro reúnen las de todas sus ediciones.
+
+| Método | Endpoint | Descripción | Respuesta exitosa |
+|---|---|---|---|
+| `GET` | `/api/v1/lecturas/{idLectura}/valoraciones` | Valoración de la lectura (arreglo vacío si aún no tiene). | `200 OK`, arreglo JSON; `404` |
+| `POST` | `/api/v1/lecturas/{idLectura}/valoraciones` | Valorar una lectura. | `201 Created`; `400`; `404`; `409` la lectura ya tiene valoración |
+| `GET` | `/api/v1/libros/{idLibro}/valoraciones` | Valoraciones de todos los usuarios sobre el libro, de la más reciente a la más antigua. | `200 OK`, arreglo JSON; `404` |
+| `GET` | `/api/v1/valoraciones/{id}` | Una valoración por su ID. | `200 OK`; `404` |
+| `PATCH` | `/api/v1/valoraciones/{id}` | Cambiar la puntuación y/o la reseña. | `200 OK`; `400`; `404` |
+| `DELETE` | `/api/v1/valoraciones/{id}` | Eliminar la valoración. | `204 No Content`; `404` |
+
+Campos JSON de valoración:
+
+| Campo | Tipo | Notas |
+|---|---|---|
+| `idValoracion` | integer | Lo genera la base de datos |
+| `idLectura` | integer | Se toma de la ruta |
+| `puntuacion` | integer | Obligatorio; de 1 a 5 |
+| `resenna` | string | Obligatorio; máximo 2000 caracteres |
+| `fecha` | string | `YYYY-MM-DD`; se asigna sola con la fecha de hoy al crear o modificar |
+| `idUsuario`, `nombreUsuario`, `idLibro`, `titulo` | | Solo lectura (se obtienen con JOIN) |
+
+Reglas:
+- Solo se valoran lecturas `terminada` o `abandonada`.
+- Cada lectura tiene como máximo una valoración; para cambiarla se usa `PATCH`.
+
+Valorar una lectura:
+```http
+POST /api/v1/lecturas/3/valoraciones
+Content-Type: application/json
+
+{
+  "puntuacion": 5,
+  "resenna": "Excelente final de la saga."
+}
+```
+
+### Lista por leer
+
+Libros que el usuario quiere leer más adelante, cada uno con una prioridad. Un libro aparece una sola vez en la lista de cada usuario.
+
+| Método | Endpoint | Descripción | Respuesta exitosa |
+|---|---|---|---|
+| `GET` | `/api/v1/usuarios/{idUsuario}/por-leer` | Lista del usuario, ordenada por prioridad (Alta, Media, Baja). Filtro opcional `?prioridad=`. | `200 OK`, arreglo JSON; `404` |
+| `GET` | `/api/v1/usuarios/{idUsuario}/por-leer/{idLibro}` | Un libro de la lista. | `200 OK`; `404` |
+| `POST` | `/api/v1/usuarios/{idUsuario}/por-leer` | Agregar un libro a la lista. | `201 Created`; `400`; `404` usuario o libro; `409` el libro ya está en la lista |
+| `PATCH` | `/api/v1/usuarios/{idUsuario}/por-leer/{idLibro}` | Cambiar la prioridad. | `200 OK`; `400`; `404` |
+| `DELETE` | `/api/v1/usuarios/{idUsuario}/por-leer/{idLibro}` | Quitar el libro de la lista. | `204 No Content`; `404` |
+
+Campos JSON de libro por leer:
+
+| Campo | Tipo | Notas |
+|---|---|---|
+| `idUsuario` | integer | Se toma de la ruta |
+| `idLibro` | integer | Obligatorio al agregar |
+| `prioridad` | string | `Alta`, `Media` o `Baja` (no distingue mayúsculas); por defecto `Media` |
+| `fechaAgregado` | string | `YYYY-MM-DD`; se asigna sola con la fecha de hoy |
+| `titulo`, `nombreSaga`, `ordenSaga` | | Solo lectura (se obtienen con JOIN) |
+
+Agregar un libro a la lista:
+```http
+POST /api/v1/usuarios/1/por-leer
+Content-Type: application/json
+
+{
+  "idLibro": 6,
+  "prioridad": "Alta"
+}
+```
+
 ### Catálogo de libros
 
 | Método | Endpoint | Descripción | Respuesta exitosa |

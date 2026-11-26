@@ -1,0 +1,35 @@
+# MySQL 8 para la Biblioteca Virtual
+# Uso (desde la raíz del repo):
+#   1) copy .env.example .env   y poner contraseñas
+#   2) docker compose up -d
+# Los scripts se cargan solo la primera vez (volumen vacío).
+# Para recrear la BD desde cero:  docker compose down -v  y  docker compose up -d
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: biblioteca-mysql
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: bibliotecadb
+      MYSQL_USER: ${DB_USR_NAME}
+      MYSQL_PASSWORD: ${DB_PWD}
+      TZ: America/Costa_Rica
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - ./src/main/resources/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      - ./src/main/resources/data.sql:/docker-entrypoint-initdb.d/02_data.sql:ro
+      - biblioteca-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  biblioteca-data:

@@ -25,26 +25,6 @@ postman/       colección de Postman con todos los endpoints
 docker-compose.yml  MySQL 8.4 para desarrollo
 ```
 
-## Base de datos
-El modelo corregido está en [docs/diagrama_logico.md](docs/diagrama_logico.md) y [docs/diagrama_er_lecturas.drawio](docs/diagrama_er_lecturas.drawio).
-
-### Opción A: Docker
-```cmd
-copy .env.example .env
-notepad .env
-docker compose up -d
-```
-El contenedor `biblioteca-mysql` crea la base `bibliotecadb` y carga `schema.sql` y `data.sql`.
-Para recrear la base desde cero: `docker compose down -v` y luego `docker compose up -d`.
-
-### Opción B: MySQL local
-```sql
-CREATE DATABASE bibliotecadb CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'biblioteca'@'localhost' IDENTIFIED BY 'su_contraseña';
-GRANT ALL PRIVILEGES ON bibliotecadb.* TO 'biblioteca'@'localhost';
-```
-Las tablas no hace falta crearlas a mano: el backend ejecuta `schema.sql` y `data.sql` cada vez que arranca (`spring.sql.init.mode=always`). Los scripts son idempotentes.
-
 ## Ejecutar el backend
 Configure las variables de entorno con las credenciales de la base:
 

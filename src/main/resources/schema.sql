@@ -1,18 +1,3 @@
--- =====================================================================
--- Biblioteca Virtual - Script de creación de tablas (MySQL 8)
--- Entrega #2 - Bases de Datos I
---
--- Correcciones aplicadas respecto a la Entrega #1:
---   C1  'tipo', 'tot_paginas' y 'anno_publicacion' pasan de Libro a la nueva
---       entidad Edicion (Libro 1:N Edicion)
---   C2  Lectura referencia a Edicion (se lee una edición concreta)
---   C3  Nueva relación N:M Saga_Autor
---   C4  Nueva relación N:M Saga_Genero
---   C5  Sesion_Lectura: pag_leidas se reemplaza por pag_inicio / pag_fin
---   T1-T6 Ajustes técnicos para MySQL (tamaños de VARCHAR, nombres de FK
---       únicos, AUTO_INCREMENT, RESTRICT en FKs de historial, CHECKs, vistas)
--- =====================================================================
-
 SET NAMES utf8mb4;
 
 -- ---------------------------------------------------------------------

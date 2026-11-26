@@ -1,13 +1,3 @@
--- =====================================================================
--- Biblioteca Virtual - Inserción de datos (MySQL 8)
--- Migrado al modelo corregido de la Entrega #2.
---
--- Se usa INSERT IGNORE para que el script se pueda ejecutar varias veces
--- (Spring lo corre en cada arranque con spring.sql.init.mode=always) sin
--- fallar por llaves duplicadas.
--- Los ISBN son valores de ejemplo, no ISBN reales.
--- =====================================================================
-
 SET NAMES utf8mb4;
 
 -- ---------- Usuario ----------
